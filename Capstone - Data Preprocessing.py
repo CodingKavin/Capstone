@@ -16,7 +16,7 @@ rawdata2017 = pd.read_csv(r'C:\Users\kavin\OneDrive\Desktop\Data Science Project
 rawdata2018 = pd.read_csv(r'C:\Users\kavin\OneDrive\Desktop\Data Science Projects\Emissions Data Ontario\CSV\2018_final_data_set.csv')
 rawdata2019 = pd.read_csv(r'C:\Users\kavin\OneDrive\Desktop\Data Science Projects\Emissions Data Ontario\CSV\2019_final_data_set.csv')
 
-df2014 = rawdata2014[["Operation", "Sector", "Operation Type", "City", "Total Indoor Space_x", "Unit of Measure", "GHG Emissions KG", "Energy Intensity GJ_m2"]]
+df2014 = rawdata2014[["Operation", "Sector", "Operation Type", "City", "Total Indoor Space_x", "Unit of Measure", "GHG Emissions KG", "Energy Intensity GJ_m2", "Weekly Average Hours"]]
 df2015 = rawdata2015[["Operation", "Sector", "Operation Type", "City", "Total Indoor Space_x", "Unit of Measure", "GHG Emissions KG", "Energy Intensity GJ_m2"]]
 df2016 = rawdata2016[["Operation", "Sector", "Operation Type", "City", "Total Indoor Space_x", "Unit of Measure", "GHG Emissions KG", "Energy Intensity GJ_m2"]]
 df2017 = rawdata2017[["Operation", "Sector", "Operation Type", "City", "Total Indoor Space_x", "Unit of Measure", "GHG Emissions KG", "Energy Intensity GJ_m2"]]
@@ -67,7 +67,7 @@ for f in range(0, len(df2019["Operation"])):
         df2019["Total Indoor Space_x"][f] = df2019["Total Indoor Space_x"][f] * 0.092903
 
 dfclean = df2014.rename(columns={'GHG Emissions KG': '2014 GHG Em(KG)', 'Energy Intensity GJ_m2': '2014 EI(GJ/m2)', 'Total Indoor Space_x': 'Indoor Space(m2)'})
-dfclean = dfclean[["Operation", "Sector", "Operation Type", "City", "Indoor Space(m2)", "2014 GHG Em(KG)", "2014 EI(GJ/m2)"]]
+dfclean = dfclean[["Operation", "Sector", "Operation Type", "City", "Indoor Space(m2)", "2014 GHG Em(KG)", "2014 EI(GJ/m2)", "Weekly Average Hours"]]
 
 print(dfclean.dtypes)
 
@@ -173,5 +173,56 @@ for i in range(0, len(dfclean1["Sector"])):
 
 # dfclean.to_csv(r"C:\Users\kavin\OneDrive\Desktop\Data Science Projects\Emissions Data Ontario\CSV\clean_df.csv")
 
+altdf = rawdata2014.drop_duplicates('Operation')
+altdf = altdf[["Operation", "Sub Sector", "Organization", "Swimming Pool", "Number of Portables"]]
 
+print(altdf.dtypes)
 
+altdf.reset_index(drop=True, inplace=True)
+
+for j in range(0, len(altdf["Operation"])):
+    if altdf["Swimming Pool"][j] == "Yes":
+        altdf["Swimming Pool"][j] = 1
+    else:
+        altdf["Swimming Pool"][j] = 0
+        
+altdf["Swimming Pool"] = pd.to_numeric(altdf["Swimming Pool"])
+
+altdf = altdf.set_index("Operation")
+
+dfclean1["Sub Sector"] = ""
+dfclean1["Organization"] = ""
+dfclean1["Swimming Pool"] = 0
+dfclean1["Number of Portables"] = 0
+
+dfclean1.update(altdf)
+
+dfclean1 = dfclean1[dfclean1["Weekly Average Hours"] <= 168]
+
+dfclean1.fillna(-1)
+
+#One Hot Encoding
+transdata = pd.get_dummies(data = dfclean1, columns = ['Sector', 'Operation Type', 'City', 'Sub Sector', 'Organization'])
+
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn import tree
+
+X = transdata.drop(["Result GHG", "Result EI"], axis = 1)
+Y1 = transdata[["Result GHG"]]
+Y2 = transdata[["Result EI"]]
+
+#First Emissions
+
+X_train, X_test, Y1_train, Y1_test = train_test_split(X, Y1, test_size = 0.3, random_state = 1)
+
+clf1 = DecisionTreeClassifier(max_leaf_nodes=20, random_state=0)
+clf1.fit(X_train, Y1_train)
+
+tree.plot_tree(clf1)
+
+pred1 = clf1.predict(X_test)
+score1 = clf1.score(X_test, Y1_test)
+
+from sklearn.metrics import confusion_matrix
+cfm = confusion_matrix(Y1_test, pred1)
