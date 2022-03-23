@@ -208,7 +208,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import tree
 
-X = transdata.drop(["Result GHG", "Result EI"], axis = 1)
+
+
+#X = transdata.drop(["Result GHG", "Result EI"], axis = 1)
+X = transdata.drop(["Result GHG", "Result EI", "2014 GHG Em(KG)", "2019 GHG Em(KG)", "2014 EI(GJ/m2)", "2019 EI(GJ/m2)"], axis = 1)
 Y1 = transdata[["Result GHG"]]
 Y2 = transdata[["Result EI"]]
 
@@ -216,7 +219,7 @@ Y2 = transdata[["Result EI"]]
 
 X_train, X_test, Y1_train, Y1_test = train_test_split(X, Y1, test_size = 0.3, random_state = 1)
 
-clf1 = DecisionTreeClassifier(max_leaf_nodes=20, random_state=0)
+clf1 = DecisionTreeClassifier(max_leaf_nodes=10, random_state=0)
 clf1.fit(X_train, Y1_train)
 
 tree.plot_tree(clf1)
@@ -226,3 +229,17 @@ score1 = clf1.score(X_test, Y1_test)
 
 from sklearn.metrics import confusion_matrix
 cfm = confusion_matrix(Y1_test, pred1)
+
+#Second Energy Intensity
+
+X2_train, X2_test, Y2_train, Y2_test = train_test_split(X, Y2, test_size = 0.3, random_state = 2)
+
+clf2 = DecisionTreeClassifier(max_leaf_nodes=10, random_state=3)
+clf2.fit(X2_train, Y2_train)
+
+tree.plot_tree(clf2)
+
+pred2 = clf2.predict(X2_test)
+score2 = clf2.score(X2_test, Y2_test)
+
+cfm2 = confusion_matrix(Y2_test, pred2)
